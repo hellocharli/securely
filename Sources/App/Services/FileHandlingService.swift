@@ -9,7 +9,9 @@ struct FileHandlingService {
                         .appendingPathComponent(contentDirectory)
                         .appendingPathComponent(hash)
         do {
+            print("Attempting to retrieve file \(fileURL)")
             let content = try String(contentsOf: fileURL, encoding: .utf8)
+            print("Retrieved successfully")
             return req.eventLoop.makeSucceededFuture(content)
         } catch {
             return req.eventLoop.makeFailedFuture(Abort(.notFound))
@@ -26,9 +28,13 @@ struct FileHandlingService {
 
         do {
             if !fileManager.fileExists(atPath: directoryPath.path) {
+                print("Attempting to create filepath \(directoryPath.path)")
                 try fileManager.createDirectory(atPath: directoryPath.path, withIntermediateDirectories: true, attributes: nil)
+                print("Filepath successfully created")
             }
+            print("Attempting to write to file...")
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
+            print("Write successful")
             return req.eventLoop.makeSucceededFuture(())
         } catch {
             return req.eventLoop.makeFailedFuture(error)

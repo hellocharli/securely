@@ -15,7 +15,8 @@ func routes(_ app: Application) throws {
         return fileHandlingService.retrieveFile(named: hash, on: req)
             .flatMapError { error in
                 if let abortError = error as? Abort, abortError.status == .notFound {
-                    return fileHandlingService.createOrUpdateFile(named: hash, content: "Initial content", on: req)
+                    print("File \"\(hash)\" not found. Creating...")
+                    return fileHandlingService.createOrUpdateFile(named: hash, content: "", on: req)
                         .flatMap { _ in fileHandlingService.retrieveFile(named: hash, on: req) }
                 } else {
                     return req.eventLoop.makeFailedFuture(error)
