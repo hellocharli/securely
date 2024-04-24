@@ -3,21 +3,23 @@ import Vapor
 struct FileHandlingService {
     let directory = DirectoryConfiguration.detect().workingDirectory
 
-    func retrieveFile(named hash: String) throws -> String {
+    func retrieveFile(named hash: String, on req: Request) -> EventLoopFuture<String> {
         let fileURL = URL(fileURLWithPath: directory).appendingPathComponent("Files").appendingPathComponent(hash)
         do {
-            return try String(contentsOf: fileURL, encoding: .utf8)
+            let content = try String(contentsOf: fileURL, encoding: .utf8)
+            return req.eventLoop.makeSucceededFuture(content)
         } catch {
-            throw Abort(.notFound)
+            return req.eventLoop.makeFailedFuture(Abort(.notFound))
         }
     }
 
-    func createOrUpdateFile(named hash: String, content: String) throws {
+    func createOrUpdateFile(named hash: String, content: String, on req: Request) -> EventLoopFuture<Void> {
         let fileURL = URL(fileURLWithPath: directory).appendingPathComponent("Files").appendingPathComponent(hash)
         do {
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
+            return req.eventLoop.makeSucceededFuture(())
         } catch {
-            throw Abort(.internalServerError)
+            return req.eventLoop.makeFailedFuture(error)
         }
     }
 }
