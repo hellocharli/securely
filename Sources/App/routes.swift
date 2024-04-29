@@ -2,25 +2,25 @@ import Vapor
 
 func routes(_ app: Application) throws {
     
+    app.get("favicon.ico") { req in
+        return("I don't have one ):")
+    }
+    
     let hashingService = HashingService()
     let fileHandlingService = FileHandlingService()
 
-    app.get(":route") { req -> EventLoopFuture<String> in
-        guard let route = req.parameters.get("route") else {
-            throw Abort(.badRequest)
-        }
-
+    app.get(":route") { req -> Response in
+        let route: String = try req.parameters.require("route")
         let hash = hashingService.generateSHA256Hash(for: route)
-        print("Hashed URL: \(hash)")
-        return fileHandlingService.retrieveFile(named: hash, on: req)
-            .flatMapError { error in
-                if let abortError = error as? Abort, abortError.status == .notFound {
-                    print("File \"\(hash)\" not found. Creating...")
-                    return fileHandlingService.createOrUpdateFile(named: hash, content: "", on: req)
-                        .flatMap { _ in fileHandlingService.retrieveFile(named: hash, on: req) }
-                } else {
-                    return req.eventLoop.makeFailedFuture(error)
-                }
-            }
+        print("Hash: \(hash)")
+        var content: String = ""
+
+        do {
+            content = try await fileHandlingService.retrieveFile(named: hash, on: req)
+        } catch {
+            try await fileHandlingService.createFile(named: hash, on: req)
+            content = try await fileHandlingService.retrieveFile(named: hash, on: req)
+        }
+        return Response(status: .ok, body: Response.Body(string: content))
     }
 }

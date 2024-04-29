@@ -2,42 +2,42 @@ import Vapor
 
 struct FileHandlingService {
     let directory = DirectoryConfiguration.detect().workingDirectory
-    let contentDirectory = "Content"
+    let contentDirectory = "Pages"
+    let templateName = "template.html"
 
-    func retrieveFile(named hash: String, on req: Request) -> EventLoopFuture<String> {
+    func retrieveFile(named hash: String, on req: Request) async throws -> String {
         let fileURL = URL(fileURLWithPath: directory)
                         .appendingPathComponent(contentDirectory)
-                        .appendingPathComponent(hash)
+                        .appendingPathComponent("\(hash).html")
         do {
             print("Attempting to retrieve file \(fileURL)")
             let content = try String(contentsOf: fileURL, encoding: .utf8)
-            print("Retrieved successfully")
-            return req.eventLoop.makeSucceededFuture(content)
+            print("File retrieved successfully.")
+            return content
         } catch {
-            return req.eventLoop.makeFailedFuture(Abort(.notFound))
+            print("Failed to retrieve the file: \(error)")
+            throw Abort(.notFound)
         }
     }
-
-    func createOrUpdateFile(named hash: String, content: String, on req: Request) -> EventLoopFuture<Void> {
+    
+    func createFile(named hash: String, on req: Request) async throws {
         let fileURL = URL(fileURLWithPath: directory)
                       .appendingPathComponent(contentDirectory)
-                      .appendingPathComponent(hash)
-        
+                      .appendingPathComponent("\(hash).html")
+        let templateURL = URL(fileURLWithPath: directory)
+                          .appendingPathComponent(contentDirectory)
+                          .appendingPathComponent(templateName)
         let fileManager = FileManager.default
-        let directoryPath = fileURL.deletingLastPathComponent()
-
         do {
-            if !fileManager.fileExists(atPath: directoryPath.path) {
-                print("Attempting to create filepath \(directoryPath.path)")
-                try fileManager.createDirectory(atPath: directoryPath.path, withIntermediateDirectories: true, attributes: nil)
-                print("Filepath successfully created")
+            print("Attempting to create file \(fileURL)")
+            let template = try Data(contentsOf: templateURL)
+            if fileManager.createFile(atPath: fileURL.path(), contents: template) {
+                print("File successfully created.")
+            } else {
+                throw Abort(.internalServerError)
             }
-            print("Attempting to write to file...")
-            try content.write(to: fileURL, atomically: true, encoding: .utf8)
-            print("Write successful")
-            return req.eventLoop.makeSucceededFuture(())
         } catch {
-            return req.eventLoop.makeFailedFuture(error)
+            print("Template not found.")
         }
     }
 }
