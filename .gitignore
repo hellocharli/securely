@@ -1,4 +1,5 @@
 Packages
+Package.resolved
 .build
 xcuserdata
 *.xcodeproj
@@ -10,4 +11,5 @@ db.sqlite
 .env.*
 ! .env.example
 .vscode
-Pages/
+
+Public/
