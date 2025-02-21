@@ -13,7 +13,7 @@ func routes(_ app: Application) throws {
 }
 
 struct NoteController: Sendable {
-    private let notesDirectory: String = DirectoryConfiguration.detect().workingDirectory + "notes/"
+    private let notesDirectory: String = DirectoryConfiguration.detect().workingDirectory + "Public/"
     
     @Sendable
     func show(req: Request) async throws -> View {
