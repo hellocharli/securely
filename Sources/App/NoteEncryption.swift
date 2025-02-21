@@ -25,4 +25,9 @@ struct NoteEncryption {
         )
         return Data(derivedKey.withUnsafeBytes { Data($0) })
     }
+
+    static func hashNoteName(noteName: String) throws -> String {
+        let digest = SHA256.hash(data: noteName.data(using: .utf8)!)
+        return digest.compactMap { String(format: "%02x", $0) }.joined()
+    }
 }

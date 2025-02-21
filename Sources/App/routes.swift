@@ -14,24 +14,22 @@ func routes(_ app: Application) throws {
         let noteName = req.parameters.get("noteName") ?? "default"
         do {
             let notesDirectory = app.directory.workingDirectory + "notes/"
-            let notePath = notesDirectory + noteName + ".enote"
+            let hashedNoteName = try NoteEncryption.hashNoteName(noteName: noteName) // Hash the note name
+            let notePath = notesDirectory + hashedNoteName // Use hashed name as filename (no extension)
             var noteContent = ""
-
             if FileManager.default.fileExists(atPath: notePath) {
                 do {
                     let encryptedData = try Data(contentsOf: URL(fileURLWithPath: notePath))
                     noteContent = try NoteEncryption.decrypt(encryptedData: encryptedData, noteName: noteName)
                 } catch {
-                    noteContent = ""
+                    noteContent = "Error decrypting note. It might be corrupted." // Handle decryption error
                 }
             }
 
-            return try await req.view.render("note", [
-                "noteName": noteName,
-                "noteContent": noteContent
-            ])
-        } catch let error {
-            print("Error in GET /:noteName route: \(error)")
+            let showNoteContent = !noteContent.isEmpty ? "true" : "false" // Pass "true" or "false" as String
+            return try await req.view.render("note", ["noteName": noteName, "noteContent": noteContent, "showNoteContent": showNoteContent])
+        } catch let error { // Capture the error
+            print("Error in GET /:noteName route: \(error)") // Log the error
             return await renderErrorView(req, error: error)
         }
     }
@@ -40,11 +38,11 @@ func routes(_ app: Application) throws {
     app.post(":noteName") { req async -> Response in
         let noteName = req.parameters.get("noteName") ?? "default"
         let notesDirectory = app.directory.workingDirectory + "notes/"
-        let notePath = notesDirectory + noteName + ".enote" // Changed file extension to .enote
-
-        let noteContent = try? req.content.get(String.self, at: "noteContent")
-
         do {
+            let hashedNoteName = try NoteEncryption.hashNoteName(noteName: noteName) // Hash the note name
+            let notePath = notesDirectory + hashedNoteName // Use hashed name as filename (no extension)
+            let noteContent = try? req.content.get(String.self, at: "noteContent")
+
             let encryptedData = try NoteEncryption.encrypt(noteContent: noteContent ?? "", noteName: noteName)
             try encryptedData.write(to: URL(fileURLWithPath: notePath))
             return req.redirect(to: "/\(noteName)") // Redirect back to the note view
