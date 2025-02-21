@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Note - #(noteName)</title>
+</head>
+<body>
+    <h1>Note: #(noteName)</h1>
+    <form method="POST" action="/#(noteName)">
+        <textarea name="noteContent" style="width: 100%; height: 500px;">#(noteContent)</textarea>
+        <button type="submit">Save Note</button>
+    </form>
+</body>
+</html>

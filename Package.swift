@@ -11,6 +11,10 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.110.1"),
         // 🔵 Non-blocking, event-driven networking for Swift. Used for custom executors
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
+        // 🍃 Leaf template engine for Vapor
+        .package(url: "https://github.com/vapor/leaf.git", from: "4.0.0"),
+        // 🛡️ CryptoKit for encryption
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -19,6 +23,8 @@ let package = Package(
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
+                .product(name: "Leaf", package: "leaf"),
+                .product(name: "Crypto", package: "swift-crypto"),
             ],
             swiftSettings: swiftSettings
         ),
