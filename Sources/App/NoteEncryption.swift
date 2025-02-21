@@ -18,7 +18,7 @@ struct NoteEncryption {
     }
 
     private static func generateKey(from noteName: String) throws -> Data {
-        let derivedKey = try HKDF<SHA256>.deriveKey(
+        let derivedKey = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: (noteName + String(data: salt, encoding: .utf8)! ).data(using: .utf8)!),
             salt: salt,
             outputByteCount: 32

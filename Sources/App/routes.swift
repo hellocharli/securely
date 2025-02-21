@@ -14,11 +14,15 @@ func routes(_ app: Application) throws {
         let noteName = req.parameters.get("noteName") ?? "default"
         do {
             let notesDirectory = app.directory.workingDirectory + "notes/"
-            let notePath = notesDirectory + noteName + ".txt"
+            let notePath = notesDirectory + noteName + ".enote" // Changed file extension to .enote
             var noteContent = ""
             if FileManager.default.fileExists(atPath: notePath) {
-                let encryptedData = try Data(contentsOf: URL(fileURLWithPath: notePath))
-                noteContent = try NoteEncryption.decrypt(encryptedData: encryptedData, noteName: noteName)
+                do {
+                    let encryptedData = try Data(contentsOf: URL(fileURLWithPath: notePath))
+                    noteContent = try NoteEncryption.decrypt(encryptedData: encryptedData, noteName: noteName)
+                } catch {
+                    noteContent = "Error decrypting note. It might be corrupted." // Handle decryption error
+                }
             } else {
                 noteContent = "Start typing your note here..."
             }
@@ -32,9 +36,9 @@ func routes(_ app: Application) throws {
     app.post(":noteName") { req async -> Response in
         let noteName = req.parameters.get("noteName") ?? "default"
         let notesDirectory = app.directory.workingDirectory + "notes/"
-        let notePath = notesDirectory + noteName + ".txt"
+        let notePath = notesDirectory + noteName + ".enote" // Changed file extension to .enote
 
-        let noteContent = try? req.content.get(String.self, at: "noteContent") ?? ""
+        let noteContent = try? req.content.get(String.self, at: "noteContent")
 
         do {
             let encryptedData = try NoteEncryption.encrypt(noteContent: noteContent ?? "", noteName: noteName)
