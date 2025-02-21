@@ -14,20 +14,24 @@ func routes(_ app: Application) throws {
         let noteName = req.parameters.get("noteName") ?? "default"
         do {
             let notesDirectory = app.directory.workingDirectory + "notes/"
-            let notePath = notesDirectory + noteName + ".enote" // Changed file extension to .enote
+            let notePath = notesDirectory + noteName + ".enote"
             var noteContent = ""
+
             if FileManager.default.fileExists(atPath: notePath) {
                 do {
                     let encryptedData = try Data(contentsOf: URL(fileURLWithPath: notePath))
                     noteContent = try NoteEncryption.decrypt(encryptedData: encryptedData, noteName: noteName)
                 } catch {
-                    noteContent = "Error decrypting note. It might be corrupted." // Handle decryption error
+                    noteContent = ""
                 }
-            } else {
-                noteContent = "Start typing your note here..."
             }
-            return try await req.view.render("note", ["noteName": noteName, "noteContent": noteContent])
-        } catch {
+
+            return try await req.view.render("note", [
+                "noteName": noteName,
+                "noteContent": noteContent
+            ])
+        } catch let error {
+            print("Error in GET /:noteName route: \(error)")
             return await renderErrorView(req, error: error)
         }
     }
