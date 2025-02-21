@@ -1,58 +1,65 @@
 import Vapor
 
+struct Note {
+    let content: String
+}
+
+extension Note: Content {}
+
 func routes(_ app: Application) throws {
-    app.get { req async in
-        "It works!"
-    }
+    let noteController = NoteController()
+    app.get(":noteName", use: noteController.show)
+    app.post(":noteName", use: noteController.save)
+}
 
-    app.get("hello") { req async -> String in
-        "Hello, world!"
-    }
-
-    // Route to handle notes by name
-    app.get(":noteName") { req async -> View in
+struct NoteController: Sendable {
+    private let notesDirectory: String = DirectoryConfiguration.detect().workingDirectory + "notes/"
+    
+    @Sendable
+    func show(req: Request) async throws -> View {
         let noteName = req.parameters.get("noteName") ?? "default"
-        do {
-            let notesDirectory = app.directory.workingDirectory + "notes/"
-            let hashedNoteName = try NoteEncryption.hashNoteName(noteName: noteName) // Hash the note name
-            let notePath = notesDirectory + hashedNoteName // Use hashed name as filename (no extension)
-            var noteContent = ""
-            if FileManager.default.fileExists(atPath: notePath) {
-                do {
-                    let encryptedData = try Data(contentsOf: URL(fileURLWithPath: notePath))
-                    noteContent = try NoteEncryption.decrypt(encryptedData: encryptedData, noteName: noteName)
-                } catch {
-                    noteContent = "Error decrypting note. It might be corrupted." // Handle decryption error
-                }
+        let hashedNoteName = try NoteEncryption.hashNoteName(noteName)
+        let notePath = notesDirectory + hashedNoteName
+        
+        let noteContent: String
+        if FileManager.default.fileExists(atPath: notePath) {
+            do {
+                let encryptedData = try Data(contentsOf: URL(fileURLWithPath: notePath))
+                noteContent = try NoteEncryption.decrypt(encryptedData: encryptedData, noteName: noteName)
+            } catch {
+                req.logger.error("Failed to decrypt note: \(error)")
+                noteContent = ""
             }
-
-            let showNoteContent = !noteContent.isEmpty ? "true" : "false" // Pass "true" or "false" as String
-            return try await req.view.render("note", ["noteName": noteName, "noteContent": noteContent, "showNoteContent": showNoteContent])
-        } catch let error { // Capture the error
-            print("Error in GET /:noteName route: \(error)") // Log the error
-            return await renderErrorView(req, error: error)
+        } else {
+            noteContent = ""
         }
+        
+        return try await req.view.render("note", [
+            "noteName": noteName,
+            "noteContent": noteContent,
+            "showNoteContent": (!noteContent.isEmpty).description
+        ])
     }
-
-    // Route to handle saving notes
-    app.post(":noteName") { req async -> Response in
+    
+    @Sendable
+    func save(req: Request) async throws -> Response {
         let noteName = req.parameters.get("noteName") ?? "default"
-        let notesDirectory = app.directory.workingDirectory + "notes/"
-        do {
-            let hashedNoteName = try NoteEncryption.hashNoteName(noteName: noteName) // Hash the note name
-            let notePath = notesDirectory + hashedNoteName // Use hashed name as filename (no extension)
-            let noteContent = try? req.content.get(String.self, at: "noteContent")
-
-            let encryptedData = try NoteEncryption.encrypt(noteContent: noteContent ?? "", noteName: noteName)
-            try encryptedData.write(to: URL(fileURLWithPath: notePath))
-            return req.redirect(to: "/\(noteName)") // Redirect back to the note view
-        } catch {
-            return Response(status: .internalServerError)
-        }
+        let hashedNoteName = try NoteEncryption.hashNoteName(noteName)
+        let notePath = notesDirectory + hashedNoteName
+        
+        let noteContent = try req.content.get(String.self, at: "noteContent")
+        let encryptedData = try NoteEncryption.encrypt(noteContent: noteContent, noteName: noteName)
+        try encryptedData.write(to: URL(fileURLWithPath: notePath))
+        
+        return req.redirect(to: "/\(noteName)")
     }
 }
 
-// Helper function to render the error view
-func renderErrorView(_ req: Request, error: Error) async -> View {
-    return try! await req.view.render("error", ["error": "Server error"])
+struct ErrorResponse: Content {
+    let error: String
+}
+
+func renderErrorView(_ req: Request, error: Error) async throws -> View {
+    req.logger.error("Application error: \(error)")
+    return try await req.view.render("error", ["error": "Server error"])
 }
