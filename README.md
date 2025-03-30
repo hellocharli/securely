@@ -1,4 +1,4 @@
-# Universal Notes
+# Securely
 
 A simple, secure note-taking application built with Vapor that provides encrypted note storage. Notes are encrypted using AES-GCM encryption, with keys derived from the note names using HKDF.
 
@@ -18,8 +18,8 @@ A simple, secure note-taking application built with Vapor that provides encrypte
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/hellocharli/universal-notes.git
-cd universal-notes
+git clone https://github.com/hellocharli/securely.git
+cd securely
 ```
 
 2. Build and run the project:
